@@ -1,13 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
-//
-// Generated with Bot Builder V4 SDK Template for Visual Studio EmptyBot v4.9.2
 
+using ChatBot.Unaj.Bots;
+using ChatBot.Unaj.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -15,13 +14,6 @@ namespace ChatBot.Unaj
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
-        {
-            Configuration = configuration;
-        }
-
-        public IConfiguration Configuration { get; }
-
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
@@ -30,8 +22,11 @@ namespace ChatBot.Unaj
             // Create the Bot Framework Adapter with error handling enabled.
             services.AddSingleton<IBotFrameworkHttpAdapter, AdapterWithErrorHandler>();
 
-            // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
-            services.AddTransient<IBot, EmptyBot>();
+            // Create the bot services (LUIS, QnA) as a singleton.
+            services.AddSingleton<IBotServices, BotServices>();
+
+            // Create the bot as a transient.
+            services.AddTransient<IBot, DispatchBot>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -44,7 +39,6 @@ namespace ChatBot.Unaj
 
             app.UseDefaultFiles()
                 .UseStaticFiles()
-                .UseWebSockets()
                 .UseRouting()
                 .UseAuthorization()
                 .UseEndpoints(endpoints =>

@@ -7,7 +7,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.1" />
-    <PackageReference Include="Microsoft.Bot.Builder.Integration.AspNet.Core" Version="4.9.2" />
+    <PackageReference Include="Microsoft.Bot.Builder.AI.Luis" Version="4.9.3" />
+    <PackageReference Include="Microsoft.Bot.Builder.AI.QnA" Version="4.9.3" />
+    <PackageReference Include="Microsoft.Bot.Builder.Integration.AspNet.Core" Version="4.9.3" />
   </ItemGroup>
 
     <ItemGroup>
@@ -15,5 +17,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+
+    <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
 
 </Project>
