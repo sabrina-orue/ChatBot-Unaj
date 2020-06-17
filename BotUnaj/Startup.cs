@@ -3,6 +3,7 @@
 //
 // Generated with Bot Builder V4 SDK Template for Visual Studio EmptyBot v4.9.2
 
+using BotUnaj.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -29,9 +30,10 @@ namespace BotUnaj
 
             // Create the Bot Framework Adapter with error handling enabled.
             services.AddSingleton<IBotFrameworkHttpAdapter, AdapterWithErrorHandler>();
+            services.AddSingleton<LuisRecognizeInterface, LuisRecognizeClass>();
 
             // Create the bot as a transient. In this case the ASP Controller is expecting an IBot.
-            services.AddTransient<IBot, BotUnaj>();
+            services.AddTransient< IBot, BotUnaj>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

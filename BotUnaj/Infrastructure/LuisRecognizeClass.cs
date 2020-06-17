@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BotUnaj.Infrastructure
 {
-    public class LuisRecognizeClass
+    public class LuisRecognizeClass: LuisRecognizeInterface
     {
         public LuisRecognizer _recognizer { get; private set; }
 
