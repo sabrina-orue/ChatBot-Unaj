@@ -26,7 +26,7 @@ namespace ChatBot.Unaj.Controllers
             _bot = bot;
         }
 
-        [HttpPost]
+        [HttpPost,HttpGet]
         public async Task PostAsync()
         {
             // Delegate the processingg of the HTTP POST to the adapter.

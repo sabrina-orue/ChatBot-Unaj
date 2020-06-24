@@ -5,11 +5,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ChatBot.Unaj.Entities;
 using ChatBot.Unaj.Infrastructure;
 using Microsoft.Azure.CognitiveServices.Language.LUIS.Runtime.Models;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.AI.QnA;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
+using Microsoft.Recognizers.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace ChatBot.Unaj.Bots
 {
@@ -31,9 +36,11 @@ namespace ChatBot.Unaj.Bots
 
             // Top intent tell us which cognitive service to use.
             var topIntent = recognizerResult.GetTopScoringIntent();
+            var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
+            string value = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
 
-            // Next, we call the dispatcher with the top intent.
-            await DispatchToTopIntentAsync(turnContext, topIntent.intent, recognizerResult, cancellationToken);
+             // Next, we call the dispatcher with the top intent.
+             await DispatchToTopIntentAsync(turnContext, topIntent.intent, recognizerResult, cancellationToken,  value );
         }
 
         protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
@@ -49,24 +56,23 @@ namespace ChatBot.Unaj.Bots
             }
         }
 
-        private async Task DispatchToTopIntentAsync(ITurnContext<IMessageActivity> turnContext, string intent, RecognizerResult recognizerResult, CancellationToken cancellationToken)
+        private async Task DispatchToTopIntentAsync(ITurnContext<IMessageActivity> turnContext, string intent, RecognizerResult recognizerResult, CancellationToken cancellationToken, string value)
         {
             switch (intent)
             {
-                case "l_HomeAutomation":
+                case "Saludar":
                     await ProcessHomeAutomationAsync(turnContext, recognizerResult.Properties["luisResult"] as LuisResult, cancellationToken);
                     break;
-                case "l_Weather":
-                    await ProcessWeatherAsync(turnContext, recognizerResult.Properties["luisResult"] as LuisResult, cancellationToken);
-                    break;
-                case "q_sample-qna":
-                    await ProcessSampleQnAAsync(turnContext, cancellationToken);
-                    break;
-                default:
-                    _logger.LogInformation($"Dispatch unrecognized intent: {intent}.");
+                case "None":
                     await turnContext.SendActivityAsync(MessageFactory.Text($"Dispatch unrecognized intent: {intent}."), cancellationToken);
                     break;
-            }
+                case "Agradecer":
+                    await turnContext.SendActivityAsync(MessageFactory.Text($"Dispatch unrecognized intent: {intent}."), cancellationToken);
+                    break;
+                default:
+                    await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
+                    break;
+                               }
         }
 
         private async Task ProcessHomeAutomationAsync(ITurnContext<IMessageActivity> turnContext, LuisResult luisResult, CancellationToken cancellationToken)
@@ -100,18 +106,34 @@ namespace ChatBot.Unaj.Bots
             }
         }
 
-        private async Task ProcessSampleQnAAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
+        private async Task ProcessSampleQnAAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken, string topIntent, string value)
         {
+            QueryResult[] results;
             _logger.LogInformation("ProcessSampleQnAAsync");
+            if(value != null)
+            {
+                var metadata = new Microsoft.Bot.Builder.AI.QnA.Metadata();
+                var qnaOptions = new QnAMakerOptions();
 
-            var results = await _botServices.SampleQnA.GetAnswersAsync(turnContext);
+                metadata.Name = topIntent;
+                metadata.Value = value;
+                qnaOptions.Top = 5;
+                qnaOptions.StrictFilters = new Microsoft.Bot.Builder.AI.QnA.Metadata[] { metadata };
+                qnaOptions.ScoreThreshold = 0.1F;
+                results = await _botServices.SampleQnA.GetAnswersAsync(turnContext, qnaOptions);
+            }
+            else
+            {
+                results = await _botServices.SampleQnA.GetAnswersAsync(turnContext);
+            }
+
             if (results.Any())
             {
                 await turnContext.SendActivityAsync(MessageFactory.Text(results.First().Answer), cancellationToken);
             }
             else
             {
-                await turnContext.SendActivityAsync(MessageFactory.Text("Sorry, could not find an answer in the Q and A system."), cancellationToken);
+                await turnContext.SendActivityAsync(MessageFactory.Text("Lo siento, no te entendí. Podrias reformular tu pregunta?."), cancellationToken);
             }
         }
     }
