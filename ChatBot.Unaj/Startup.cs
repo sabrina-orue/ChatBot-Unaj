@@ -7,6 +7,7 @@ using ChatBot.Unaj.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Adapters.Facebook;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +24,7 @@ namespace ChatBot.Unaj
 
             // Create the Bot Framework Adapter with error handling enabled.
             services.AddSingleton<IBotFrameworkHttpAdapter, AdapterWithErrorHandler>();
+          
 
             // Create the bot services (LUIS, QnA) as a singleton.
             services.AddSingleton<IBotServices, BotServices>();
@@ -35,6 +37,11 @@ namespace ChatBot.Unaj
             services.AddSingleton<RootDialog>();
 
             // Create the bot as a transient.
+
+           
+
+            // Create the Facebook Adapter
+            services.AddSingleton<FacebookAdapter, FacebookAdapterWithErrorHandler>();
 
         }
 

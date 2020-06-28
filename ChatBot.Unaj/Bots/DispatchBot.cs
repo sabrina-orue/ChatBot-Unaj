@@ -164,7 +164,7 @@ namespace ChatBot.Unaj.Bots
 
                 //  await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken, respuesta, preguntasSugeridas);
 
-                await turnContext.SendActivityAsync(activity: CreateHeroCard(respuesta, preguntasSugeridas), cancellationToken);
+                await turnContext.SendActivityAsync(activity: CreateHeroCard( respuesta, preguntasSugeridas), cancellationToken);
             }
             else
             {
@@ -185,7 +185,7 @@ namespace ChatBot.Unaj.Bots
             {
                 CardAction button = new CardAction();
                 button.Title = "¿"+p.Question+"?";
-                button.Value = p.Answer;
+                button.Value = p.Question;
                 button.Type = ActionTypes.ImBack;
                 buttons.Add(button);
             }
