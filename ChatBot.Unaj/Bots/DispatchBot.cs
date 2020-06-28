@@ -78,7 +78,7 @@ namespace ChatBot.Unaj.Bots
         {
             switch (intent)
             {
-                case "Saludar":
+                case "saludar":
                     //await ProcessHomeAutomationAsync(turnContext, recognizerResult.Properties["luisResult"] as LuisResult, cancellationToken); 
                     await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
                     break;
@@ -184,7 +184,7 @@ namespace ChatBot.Unaj.Bots
             foreach (var p in preguntas)
             {
                 CardAction button = new CardAction();
-                button.Title = "¿"+p.Question+"?";
+                button.Title = p.Question;
                 button.Value = p.Question;
                 button.Type = ActionTypes.ImBack;
                 buttons.Add(button);
