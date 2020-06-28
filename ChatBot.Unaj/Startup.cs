@@ -2,10 +2,12 @@
 // Licensed under the MIT License.
 
 using ChatBot.Unaj.Bots;
+using ChatBot.Unaj.Dialogs;
 using ChatBot.Unaj.Infrastructure;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -25,8 +27,15 @@ namespace ChatBot.Unaj
             // Create the bot services (LUIS, QnA) as a singleton.
             services.AddSingleton<IBotServices, BotServices>();
 
+            services.AddTransient<IBot, DispatchBot<RootDialog>>();
+
+            services.AddSingleton<IStorage, MemoryStorage>();
+
+            services.AddSingleton<ConversationState>();
+            services.AddSingleton<RootDialog>();
+
             // Create the bot as a transient.
-            services.AddTransient<IBot, DispatchBot>();
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

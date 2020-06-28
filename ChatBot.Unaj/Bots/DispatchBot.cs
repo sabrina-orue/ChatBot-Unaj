@@ -1,15 +1,18 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ChatBot.Unaj.Dialogs;
 using ChatBot.Unaj.Entities;
 using ChatBot.Unaj.Infrastructure;
 using Microsoft.Azure.CognitiveServices.Language.LUIS.Runtime.Models;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.AI.QnA;
+using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Schema;
 using Microsoft.Extensions.Logging;
 using Microsoft.Recognizers.Text;
@@ -18,19 +21,25 @@ using Newtonsoft.Json.Linq;
 
 namespace ChatBot.Unaj.Bots
 {
-    public class DispatchBot : ActivityHandler
+    public class DispatchBot<T> : ActivityHandler where T : Dialog
     {
-        private readonly ILogger<DispatchBot> _logger;
+        private readonly ILogger<DispatchBot<T>> _logger;
         private readonly IBotServices _botServices;
+        protected readonly Dialog _dialog;
+        protected readonly BotState _conversationState;
 
-        public DispatchBot(IBotServices botServices, ILogger<DispatchBot> logger)
+        public DispatchBot(T dialog, ConversationState conversationState, IBotServices botServices, ILogger<DispatchBot<T>> logger)
         {
             _logger = logger;
             _botServices = botServices;
+            _conversationState = conversationState;
+            _dialog = dialog;
         }
 
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
+            //await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken);
+
             // First, we use the dispatch model to determine which cognitive service (LUIS or QnA) to use.
             var recognizerResult = await _botServices.Dispatch.RecognizeAsync(turnContext, cancellationToken);
 
@@ -39,40 +48,51 @@ namespace ChatBot.Unaj.Bots
             var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
             string value = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
 
-             // Next, we call the dispatcher with the top intent.
-             await DispatchToTopIntentAsync(turnContext, topIntent.intent, recognizerResult, cancellationToken,  value );
+            // Next, we call the dispatcher with the top intent.
+            await DispatchToTopIntentAsync(turnContext, topIntent.intent, recognizerResult, cancellationToken, value);
         }
 
         protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
         {
-            const string WelcomeText = "Type a greeting, or a question about the weather to get started.";
 
             foreach (var member in membersAdded)
             {
                 if (member.Id != turnContext.Activity.Recipient.Id)
                 {
-                    await turnContext.SendActivityAsync(MessageFactory.Text($"Welcome to Dispatch bot {member.Name}. {WelcomeText}"), cancellationToken);
+                    await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken);
+
+                    //await turnContext.SendActivityAsync(MessageFactory.Text($"Welcome to Dispatch bot {member.Name}. {WelcomeText}"), cancellationToken);
                 }
             }
         }
+
+        //public override async Task OnTurnAsync(ITurnContext turnContext, CancellationToken cancellationToken = default)
+        //{
+        //    await base.OnTurnAsync(turnContext, cancellationToken);
+        //    await _conversationState.SaveChangesAsync(turnContext,false,cancellationToken);
+
+        //}
+
 
         private async Task DispatchToTopIntentAsync(ITurnContext<IMessageActivity> turnContext, string intent, RecognizerResult recognizerResult, CancellationToken cancellationToken, string value)
         {
             switch (intent)
             {
                 case "Saludar":
-                    await ProcessHomeAutomationAsync(turnContext, recognizerResult.Properties["luisResult"] as LuisResult, cancellationToken);
+                    //await ProcessHomeAutomationAsync(turnContext, recognizerResult.Properties["luisResult"] as LuisResult, cancellationToken); 
+                    await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
                     break;
                 case "None":
-                    await turnContext.SendActivityAsync(MessageFactory.Text($"Dispatch unrecognized intent: {intent}."), cancellationToken);
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Lo siento, no entendi. Podrias reformular  tu pregunta"), cancellationToken);
                     break;
                 case "Agradecer":
-                    await turnContext.SendActivityAsync(MessageFactory.Text($"Dispatch unrecognized intent: {intent}."), cancellationToken);
+                    //await turnContext.SendActivityAsync(MessageFactory.Text($"Dispatch unrecognized intent: {intent}."), cancellationToken);
+                    await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
                     break;
                 default:
                     await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
                     break;
-                               }
+            }
         }
 
         private async Task ProcessHomeAutomationAsync(ITurnContext<IMessageActivity> turnContext, LuisResult luisResult, CancellationToken cancellationToken)
@@ -110,7 +130,7 @@ namespace ChatBot.Unaj.Bots
         {
             QueryResult[] results;
             _logger.LogInformation("ProcessSampleQnAAsync");
-            if(value != null)
+            if (value != null)
             {
                 var metadata = new Microsoft.Bot.Builder.AI.QnA.Metadata();
                 var qnaOptions = new QnAMakerOptions();
@@ -127,14 +147,58 @@ namespace ChatBot.Unaj.Bots
                 results = await _botServices.SampleQnA.GetAnswersAsync(turnContext);
             }
 
+
+            var respuesta = results.First().Answer;
             if (results.Any())
             {
-                await turnContext.SendActivityAsync(MessageFactory.Text(results.First().Answer), cancellationToken);
+                List<PreguntasSugeridas> preguntasSugeridas = new List<PreguntasSugeridas>();
+                for (int i = 1; i < results.Count(); i++)
+                {
+                    Random index = new Random();
+                    var pregunta = results[i].Questions[index.Next(0, results[i].Questions.Count() - 1)];
+                    PreguntasSugeridas sugerencias = new PreguntasSugeridas();
+                    sugerencias.Question = pregunta;
+                    sugerencias.Answer = results[i].Answer;
+                    preguntasSugeridas.Add(sugerencias);
+                }
+
+                //  await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken, respuesta, preguntasSugeridas);
+
+                await turnContext.SendActivityAsync(activity: CreateHeroCard(respuesta, preguntasSugeridas), cancellationToken);
             }
             else
             {
-                await turnContext.SendActivityAsync(MessageFactory.Text("Lo siento, no te entendí. Podrias reformular tu pregunta?."), cancellationToken);
+                await turnContext.SendActivityAsync(MessageFactory.Text("Lo siento, no te entendí. Podrías reformular tu pregunta?."), cancellationToken);
             }
         }
+
+
+        private static Activity CreateHeroCard(string _respuesta, List<PreguntasSugeridas> preguntas)
+        {
+            var image = new CardImage();
+            var heroCard = new HeroCard();
+            heroCard.Title = "";
+            heroCard.Text = _respuesta;
+            
+            List<CardAction> buttons = new List<CardAction>();
+            foreach (var p in preguntas)
+            {
+                CardAction button = new CardAction();
+                button.Title = "¿"+p.Question+"?";
+                button.Value = p.Answer;
+                button.Type = ActionTypes.ImBack;
+                buttons.Add(button);
+            }
+            heroCard.Buttons = buttons;
+
+            return MessageFactory.Attachment(heroCard.ToAttachment()) as Activity;
+
+        } // propio de botFramework
     }
+
+
+    public class PreguntasSugeridas{
+        public string Question { get; set; }
+        public string Answer { get; set; }
+            }
 }
