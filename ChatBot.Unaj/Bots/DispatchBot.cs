@@ -38,23 +38,32 @@ namespace ChatBot.Unaj.Bots
 
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
-            //await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken);
+            //MENSAJE DE BIENVENIDA PARA TELEGRAM
+            if (turnContext.Activity.Text.Equals("/start"))
+            {
+                await turnContext.SendActivityAsync(activity: WelcomeHeroCard(), cancellationToken);
+                await Task.Delay(500);
+                await turnContext.SendActivityAsync(MessageFactory.Text("Hola! Soy el asistente virtual de la Universidad. Estoy disponible las 24hs del dia para responder tus consultas. Tengo información en mi base de conocimientos relacionada a Siu Guarani, Campus Virtual, Inscripciones y más!"), cancellationToken);
+            }
+            else
+            {
+                //await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken);
 
-            // First, we use the dispatch model to determine which cognitive service (LUIS or QnA) to use.
-            var recognizerResult = await _botServices.Dispatch.RecognizeAsync(turnContext, cancellationToken);
+                // First, we use the dispatch model to determine which cognitive service (LUIS or QnA) to use.
+                var recognizerResult = await _botServices.Dispatch.RecognizeAsync(turnContext, cancellationToken);
 
-            // Top intent tell us which cognitive service to use.
-            var topIntent = recognizerResult.GetTopScoringIntent();
-            var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
-            string value = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
+                // Top intent tell us which cognitive service to use.
+                var topIntent = recognizerResult.GetTopScoringIntent();
+                var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
+                string value = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
 
-            // Next, we call the dispatcher with the top intent.
-            await DispatchToTopIntentAsync(turnContext, topIntent.intent, recognizerResult, cancellationToken, value);
+                // Next, we call the dispatcher with the top intent.
+                await DispatchToTopIntentAsync(turnContext, topIntent.intent, recognizerResult, cancellationToken, value);
+            }
         }
 
         protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
         {
-
             foreach (var member in membersAdded)
             {
                 if (member.Id != turnContext.Activity.Recipient.Id)
@@ -201,6 +210,24 @@ namespace ChatBot.Unaj.Bots
                 buttons.Add(button);
             }
             heroCard.Buttons = buttons;
+
+            return MessageFactory.Attachment(heroCard.ToAttachment()) as Activity;
+
+        } // propio de botFramework
+
+        private static Activity WelcomeHeroCard()
+        {
+            var image = new CardImage();
+            image.Url = "https://www.universidades.com.ar/logos/original/logo-universidad-nacional-arturo-jauretche.png";
+            var Images = new List<CardImage>();
+            Images.Add(image);
+            var heroCard = new HeroCard();
+            heroCard.Title = "Asistente Virtual UNAJ";
+            heroCard.Subtitle = "";
+            heroCard.Text = "";
+            //heroCard.Text = "Hola! Soy el asistente virtual de la Universidad y estare disponible las 24hs del dia para resonder a tus consultas. Si tienes alguna pregunta no dudes en hacerla,´contengo";
+            heroCard.Images = Images;
+
 
             return MessageFactory.Attachment(heroCard.ToAttachment()) as Activity;
 

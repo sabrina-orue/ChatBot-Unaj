@@ -29,14 +29,15 @@ namespace ChatBot.Unaj
             // Create the bot services (LUIS, QnA) as a singleton.
             services.AddSingleton<IBotServices, BotServices>();
 
+            // Create the bot as a transient.
             services.AddTransient<IBot, DispatchBot<RootDialog>>();
 
             services.AddSingleton<IStorage, MemoryStorage>();
 
             services.AddSingleton<ConversationState>();
+
             services.AddSingleton<RootDialog>();
 
-            // Create the bot as a transient.
 
            
 
