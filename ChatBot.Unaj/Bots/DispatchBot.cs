@@ -140,6 +140,8 @@ namespace ChatBot.Unaj.Bots
                 qnaOptions.Top = 5;
                 qnaOptions.StrictFilters = new Microsoft.Bot.Builder.AI.QnA.Metadata[] { metadata };
                 qnaOptions.ScoreThreshold = 0.1F;
+
+
                 results = await _botServices.SampleQnA.GetAnswersAsync(turnContext, qnaOptions);
             }
             else
@@ -149,22 +151,31 @@ namespace ChatBot.Unaj.Bots
 
 
             var respuesta = results.First().Answer;
-            if (results.Any())
+            if (results.Any() )
             {
-                List<PreguntasSugeridas> preguntasSugeridas = new List<PreguntasSugeridas>();
-                for (int i = 1; i < results.Count(); i++)
+                if(results.Count() > 1)
                 {
-                    Random index = new Random();
-                    var pregunta = results[i].Questions[index.Next(0, results[i].Questions.Count() - 1)];
-                    PreguntasSugeridas sugerencias = new PreguntasSugeridas();
-                    sugerencias.Question = pregunta;
-                    sugerencias.Answer = results[i].Answer;
-                    preguntasSugeridas.Add(sugerencias);
+                    List<PreguntasSugeridas> preguntasSugeridas = new List<PreguntasSugeridas>();
+                    for (int i = 1; i < results.Count(); i++)
+                    {
+                        Random index = new Random();
+                        var pregunta = results[i].Questions[index.Next(0, results[i].Questions.Count() - 1)];
+                        PreguntasSugeridas sugerencias = new PreguntasSugeridas();
+                        sugerencias.Question = pregunta;
+                        sugerencias.Answer = results[i].Answer;
+                        preguntasSugeridas.Add(sugerencias);
+                    }
+
+                    //  await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken, respuesta, preguntasSugeridas);
+                    await turnContext.SendActivityAsync(MessageFactory.Text(respuesta), cancellationToken);
+                    await Task.Delay(1000);
+                    await turnContext.SendActivityAsync(activity: CreateHeroCard(preguntasSugeridas), cancellationToken);
+                }
+                else
+                {
+                    await turnContext.SendActivityAsync(MessageFactory.Text(respuesta), cancellationToken);
                 }
 
-                //  await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken, respuesta, preguntasSugeridas);
-
-                await turnContext.SendActivityAsync(activity: CreateHeroCard( respuesta, preguntasSugeridas), cancellationToken);
             }
             else
             {
@@ -173,12 +184,12 @@ namespace ChatBot.Unaj.Bots
         }
 
 
-        private static Activity CreateHeroCard(string _respuesta, List<PreguntasSugeridas> preguntas)
+        private static Activity CreateHeroCard(List<PreguntasSugeridas> preguntas)
         {
             var image = new CardImage();
             var heroCard = new HeroCard();
             heroCard.Title = "";
-            heroCard.Text = _respuesta;
+            heroCard.Text = "Algunas sugerencias para tí";
             
             List<CardAction> buttons = new List<CardAction>();
             foreach (var p in preguntas)
