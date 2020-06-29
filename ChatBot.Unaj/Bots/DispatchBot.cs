@@ -47,18 +47,18 @@ namespace ChatBot.Unaj.Bots
             }
             else
             {
-                //await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken);
-
-                // First, we use the dispatch model to determine which cognitive service (LUIS or QnA) to use.
+                //turnContext contiene la pregunta del usuaio, se envía al servicio de Luis y se obtiene una respuesta.
                 var recognizerResult = await _botServices.Dispatch.RecognizeAsync(turnContext, cancellationToken);
 
-                // Top intent tell us which cognitive service to use.
+                //Tomamos la intencion con el porcentage mas alto de coincidencia
                 var topIntent = recognizerResult.GetTopScoringIntent();
-                var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
-                string value = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
 
-                // Next, we call the dispatcher with the top intent.
-                await DispatchToTopIntentAsync(turnContext, topIntent.intent, recognizerResult, cancellationToken, value);
+                //Tomamos la entidad con mayor coincidencia
+                var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
+                string valueEntity = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
+
+                //Llamamos al metodo para determinar que intencion tuvo el usuario segun LUIS
+                await DispatchToTopIntentAsync(turnContext, topIntent.intent, cancellationToken, valueEntity);
             }
         }
 
@@ -74,27 +74,7 @@ namespace ChatBot.Unaj.Bots
                 }
             }
         }
-
-        protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
-        {
-
-            //turnContext contiene la pregunta del usuaio, se envía al servicio de Luis y se obtiene una respuesta.
-            var recognizerResult = await _botServices.Dispatch.RecognizeAsync(turnContext, cancellationToken);
-
-            //Tomamos la intencion con el porcentage mas alto de coincidencia
-            var topIntent = recognizerResult.GetTopScoringIntent();
-
-            //Tomamos la entidad con mayor coincidencia
-            var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
-            string valueEntity = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
-
-            //Llamamos al metodo para determinar que intencion tuvo el usuario segun LUIS
-            await DispatchToTopIntentAsync(turnContext, topIntent.intent, cancellationToken, valueEntity);
-        }
-
-     
-
-
+        
         private async Task DispatchToTopIntentAsync(ITurnContext<IMessageActivity> turnContext, string intent, CancellationToken cancellationToken, string valueEntity)
         {
             switch (intent)
