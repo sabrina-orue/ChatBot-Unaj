@@ -66,102 +66,86 @@ namespace ChatBot.Unaj.Bots
         {
             foreach (var member in membersAdded)
             {
+                //verificamos si el usuario ya ingreso antes
                 if (member.Id != turnContext.Activity.Recipient.Id)
                 {
+                    //mensaje de Bienvenida
                     await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken);
-
-                    //await turnContext.SendActivityAsync(MessageFactory.Text($"Welcome to Dispatch bot {member.Name}. {WelcomeText}"), cancellationToken);
                 }
             }
         }
 
-        //public override async Task OnTurnAsync(ITurnContext turnContext, CancellationToken cancellationToken = default)
-        //{
-        //    await base.OnTurnAsync(turnContext, cancellationToken);
-        //    await _conversationState.SaveChangesAsync(turnContext,false,cancellationToken);
+        protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
+        {
 
-        //}
+            //turnContext contiene la pregunta del usuaio, se envía al servicio de Luis y se obtiene una respuesta.
+            var recognizerResult = await _botServices.Dispatch.RecognizeAsync(turnContext, cancellationToken);
+
+            //Tomamos la intencion con el porcentage mas alto de coincidencia
+            var topIntent = recognizerResult.GetTopScoringIntent();
+
+            //Tomamos la entidad con mayor coincidencia
+            var topEntity = recognizerResult.Entities.ToObject<MyEntityLuis>();
+            string valueEntity = topEntity.TipoConsulta?.FirstOrDefault().FirstOrDefault();
+
+            //Llamamos al metodo para determinar que intencion tuvo el usuario segun LUIS
+            await DispatchToTopIntentAsync(turnContext, topIntent.intent, cancellationToken, valueEntity);
+        }
+
+     
 
 
-        private async Task DispatchToTopIntentAsync(ITurnContext<IMessageActivity> turnContext, string intent, RecognizerResult recognizerResult, CancellationToken cancellationToken, string value)
+        private async Task DispatchToTopIntentAsync(ITurnContext<IMessageActivity> turnContext, string intent, CancellationToken cancellationToken, string valueEntity)
         {
             switch (intent)
             {
-                case "saludar":
-                    //await ProcessHomeAutomationAsync(turnContext, recognizerResult.Properties["luisResult"] as LuisResult, cancellationToken); 
-                    await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
+                case "saludar":                    
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Hola, que tal?. Dime en que te puedo ayudar?"), cancellationToken);
                     break;
-                case "None":
-                    await turnContext.SendActivityAsync(MessageFactory.Text("Lo siento, no entendi. Podrias reformular  tu pregunta"), cancellationToken);
+
+                case "agradecer":
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Por nada!!Siempre estaré aquí para ayudarte en lo que necesites!"), cancellationToken);            
                     break;
-                case "Agradecer":
-                    //await turnContext.SendActivityAsync(MessageFactory.Text($"Dispatch unrecognized intent: {intent}."), cancellationToken);
-                    await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
+
+                case "molestar":
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Siento mucho no agraderte, o no serte útil. Te pido me trates con respeto, recuerda que estamos en un ámbito educativo y me programaron para ser muy amigable y servicial. Tenme paciencia, con el tiempo ire aprendiendo mas acerca de tus necesidades."), cancellationToken);
                     break;
+
+               case "consultar":
+                    //Creamos un metodo que nos conecta con QnA para obtener la respuesta
+                    await ConnectQnAAsync(turnContext, cancellationToken, intent, valueEntity);
+                    break;
+
                 default:
-                    await ProcessSampleQnAAsync(turnContext, cancellationToken, intent, value);
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Lo siento, no entendí. Podrías reformular  tu pregunta"), cancellationToken);
                     break;
             }
         }
 
-        private async Task ProcessHomeAutomationAsync(ITurnContext<IMessageActivity> turnContext, LuisResult luisResult, CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("ProcessHomeAutomationAsync");
-
-            // Retrieve LUIS result for Process Automation.
-            var result = luisResult.ConnectedServiceResult;
-            var topIntent = result.TopScoringIntent.Intent;
-
-            await turnContext.SendActivityAsync(MessageFactory.Text($"HomeAutomation top intent {topIntent}."), cancellationToken);
-            await turnContext.SendActivityAsync(MessageFactory.Text($"HomeAutomation intents detected:\n\n{string.Join("\n\n", result.Intents.Select(i => i.Intent))}"), cancellationToken);
-            if (luisResult.Entities.Count > 0)
-            {
-                await turnContext.SendActivityAsync(MessageFactory.Text($"HomeAutomation entities were found in the message:\n\n{string.Join("\n\n", result.Entities.Select(i => i.Entity))}"), cancellationToken);
-            }
-        }
-
-        private async Task ProcessWeatherAsync(ITurnContext<IMessageActivity> turnContext, LuisResult luisResult, CancellationToken cancellationToken)
-        {
-            _logger.LogInformation("ProcessWeatherAsync");
-
-            // Retrieve LUIS results for Weather.
-            var result = luisResult.ConnectedServiceResult;
-            var topIntent = result.TopScoringIntent.Intent;
-            await turnContext.SendActivityAsync(MessageFactory.Text($"ProcessWeather top intent {topIntent}."), cancellationToken);
-            await turnContext.SendActivityAsync(MessageFactory.Text($"ProcessWeather Intents detected::\n\n{string.Join("\n\n", result.Intents.Select(i => i.Intent))}"), cancellationToken);
-            if (luisResult.Entities.Count > 0)
-            {
-                await turnContext.SendActivityAsync(MessageFactory.Text($"ProcessWeather entities were found in the message:\n\n{string.Join("\n\n", result.Entities.Select(i => i.Entity))}"), cancellationToken);
-            }
-        }
-
-        private async Task ProcessSampleQnAAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken, string topIntent, string value)
-        {
+      
+        private async Task ConnectQnAAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken, string topIntent, string valueEntity)  {
             QueryResult[] results;
-            _logger.LogInformation("ProcessSampleQnAAsync");
-            if (value != null)
-            {
+            _logger.LogInformation("ConnectQnAAsync");
+            if (valueEntity != null)
+            {  // Creamos el metadata de qna con la intension y la entidad que nos devolvio LUIS
                 var metadata = new Microsoft.Bot.Builder.AI.QnA.Metadata();
                 var qnaOptions = new QnAMakerOptions();
-
                 metadata.Name = topIntent;
-                metadata.Value = value;
-                qnaOptions.Top = 5;
+                metadata.Value = valueEntity;
+                qnaOptions.Top = 5; //maximo de respuestas relacionadas a la entidad
                 qnaOptions.StrictFilters = new Microsoft.Bot.Builder.AI.QnA.Metadata[] { metadata };
-                qnaOptions.ScoreThreshold = 0.1F;
-
-
+                qnaOptions.ScoreThreshold = 0.1F;// minima probabilidad de coincidencia
+                //Hacemos la consulta a QnA enviandole el metaData y la pregunta del usuario
                 results = await _botServices.SampleQnA.GetAnswersAsync(turnContext, qnaOptions);
             }
             else
-            {
+            {  //Si la entidad que devuelve LUIS es nula hacemos el llamado a QnA solo para traer la respuesta.
                 results = await _botServices.SampleQnA.GetAnswersAsync(turnContext);
             }
-
-
+            //Obtenemos la respuesta a la pregunta que nos devolvio Qna
             var respuesta = results.First().Answer;
             if (results.Any() )
-            {
+            { //Si hay mas de una respuesta, se generan los botones de sugerencia
                 if(results.Count() > 1)
                 {
                     List<PreguntasSugeridas> preguntasSugeridas = new List<PreguntasSugeridas>();
@@ -174,20 +158,19 @@ namespace ChatBot.Unaj.Bots
                         sugerencias.Answer = results[i].Answer;
                         preguntasSugeridas.Add(sugerencias);
                     }
-
-                    //  await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken, respuesta, preguntasSugeridas);
+                    //Se envia la respuesta al usuario, 
                     await turnContext.SendActivityAsync(MessageFactory.Text(respuesta), cancellationToken);
-                    await Task.Delay(1000);
+                    await Task.Delay(500);
+                    //Se envia la tarjeta con botones de sugerencias relacionado al contexto de la entidad.
                     await turnContext.SendActivityAsync(activity: CreateHeroCard(preguntasSugeridas), cancellationToken);
                 }
                 else
-                {
+                { //Si qna devuelve solo una respuesta, no se crean los botones de sugerencia.
                     await turnContext.SendActivityAsync(MessageFactory.Text(respuesta), cancellationToken);
                 }
-
             }
             else
-            {
+            {   //Si qna no devuelve ninguna respuesta.
                 await turnContext.SendActivityAsync(MessageFactory.Text("Lo siento, no te entendí. Podrías reformular tu pregunta?."), cancellationToken);
             }
         }
