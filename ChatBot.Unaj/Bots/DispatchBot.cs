@@ -36,6 +36,21 @@ namespace ChatBot.Unaj.Bots
             _dialog = dialog;
         }
 
+        protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
+        {
+            foreach (var member in membersAdded)
+            {
+                //verificamos si el usuario ya ingreso antes
+                if (member.Id != turnContext.Activity.Recipient.Id)
+                {
+                    //mensaje de Bienvenida
+                    await turnContext.SendActivityAsync(activity: WelcomeHeroCard(), cancellationToken);
+                    await Task.Delay(500);
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Hola! Soy el asistente virtual de la Universidad. Estoy disponible las 24hs del dia para responder tus consultas. Tengo información en mi base de conocimientos relacionada a Siu Guarani, Campus Virtual, Inscripciones y más!"), cancellationToken);
+                }
+            }
+        }
+
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
             //MENSAJE DE BIENVENIDA PARA TELEGRAM
@@ -62,18 +77,7 @@ namespace ChatBot.Unaj.Bots
             }
         }
 
-        protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
-        {
-            foreach (var member in membersAdded)
-            {
-                //verificamos si el usuario ya ingreso antes
-                if (member.Id != turnContext.Activity.Recipient.Id)
-                {
-                    //mensaje de Bienvenida
-                    await _dialog.RunAsync(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken);
-                }
-            }
-        }
+    
         
         private async Task DispatchToTopIntentAsync(ITurnContext<IMessageActivity> turnContext, string intent, CancellationToken cancellationToken, string valueEntity)
         {
