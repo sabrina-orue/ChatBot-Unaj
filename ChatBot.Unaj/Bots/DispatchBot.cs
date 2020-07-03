@@ -119,7 +119,7 @@ namespace ChatBot.Unaj.Bots
                 var qnaOptions = new QnAMakerOptions();
                 metadata.Name = topIntent;
                 metadata.Value = valueEntity;
-                qnaOptions.Top = 5; //maximo de respuestas relacionadas a la entidad
+                qnaOptions.Top = 10; //maximo de respuestas relacionadas a la entidad
                 qnaOptions.StrictFilters = new Microsoft.Bot.Builder.AI.QnA.Metadata[] { metadata };
                 qnaOptions.ScoreThreshold = 0.1F;// minima probabilidad de coincidencia
                 //Hacemos la consulta a QnA enviandole el metaData y la pregunta del usuario
