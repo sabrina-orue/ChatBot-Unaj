@@ -188,11 +188,11 @@ namespace ChatBot.Unaj.Bots
         private static Activity WelcomeHeroCard()
         {
             var image = new CardImage();
-            image.Url = "https://www.universidades.com.ar/logos/original/logo-universidad-nacional-arturo-jauretche.png";
+            image.Url = "https://i.ibb.co/L5btykf/Photo-1593779850001.png";
             var Images = new List<CardImage>();
             Images.Add(image);
             var heroCard = new HeroCard();
-            heroCard.Title = "Asistente Virtual UNAJ";
+            heroCard.Title = "";
             heroCard.Subtitle = "";
             heroCard.Text = "";
             //heroCard.Text = "Hola! Soy el asistente virtual de la Universidad y estare disponible las 24hs del dia para resonder a tus consultas. Si tienes alguna pregunta no dudes en hacerla,´contengo";
