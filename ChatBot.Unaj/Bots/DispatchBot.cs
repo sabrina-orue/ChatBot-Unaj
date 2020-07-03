@@ -58,7 +58,7 @@ namespace ChatBot.Unaj.Bots
             {
                 await turnContext.SendActivityAsync(activity: WelcomeHeroCard(), cancellationToken);
                 await Task.Delay(500);
-                await turnContext.SendActivityAsync(MessageFactory.Text("Hola! Soy el asistente virtual de la Universidad. Estoy disponible las 24hs del dia para responder tus consultas. Tengo información en mi base de conocimientos relacionada a Siu Guarani, Campus Virtual, Inscripciones y más!"), cancellationToken);
+                await turnContext.SendActivityAsync(MessageFactory.Text("Hola! Soy Arturito tu asistente virtual de la UNAJ. Estoy disponible las 24hs del dia para responder tus consultas. Tengo información en mi base de conocimientos relacionada a Siu Guarani, Campus Virtual, Inscripciones, calendario académico y más!"), cancellationToken);
             }
             else
             {
@@ -84,20 +84,23 @@ namespace ChatBot.Unaj.Bots
             switch (intent)
             {
                 case "saludar":                    
-                    await turnContext.SendActivityAsync(MessageFactory.Text("Hola, que tal?. Dime en que te puedo ayudar?"), cancellationToken);
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Hola ¿cómo estas? Dime en que puedo ayudarte?"), cancellationToken);
                     break;
 
                 case "agradecer":
-                    await turnContext.SendActivityAsync(MessageFactory.Text("Por nada!!Siempre estaré aquí para ayudarte en lo que necesites!"), cancellationToken);            
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Por nada! Siempre estaré aquí para ayudarte en lo que necesites!"), cancellationToken);            
                     break;
 
                 case "molestar":
-                    await turnContext.SendActivityAsync(MessageFactory.Text("Siento mucho no agraderte, o no serte útil. Te pido me trates con respeto, recuerda que estamos en un ámbito educativo y me programaron para ser muy amigable y servicial. Tenme paciencia, con el tiempo ire aprendiendo mas acerca de tus necesidades."), cancellationToken);
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Siento mucho no agradarte, o no serte útil. Te pido me trates con respeto, recuerda que estamos en un ámbito educativo y me programaron para ser muy amigable y servicial. Tenme paciencia, con el tiempo ire aprendiendo mas acerca de tus necesidades."), cancellationToken);
                     break;
 
                case "consultar":
                     //Creamos un metodo que nos conecta con QnA para obtener la respuesta
                     await ConnectQnAAsync(turnContext, cancellationToken, intent, valueEntity);
+                    break;
+               case "despedir":
+                    await turnContext.SendActivityAsync(MessageFactory.Text("Hasta pronto, espero haberte ayudado! Recuerda que estoy aqui para cuando lo necesites"), cancellationToken);
                     break;
 
                 default:
