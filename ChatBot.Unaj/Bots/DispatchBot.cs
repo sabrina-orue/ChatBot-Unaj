@@ -138,12 +138,15 @@ namespace ChatBot.Unaj.Bots
                     List<PreguntasSugeridas> preguntasSugeridas = new List<PreguntasSugeridas>();
                     for (int i = 1; i < results.Count(); i++)
                     {
+                        //await turnContext.SendActivityAsync(MessageFactory.Text("sugerencia"+i.ToString()), cancellationToken);
+
                         Random index = new Random();
                         var pregunta = results[i].Questions[index.Next(0, results[i].Questions.Count() - 1)];
                         PreguntasSugeridas sugerencias = new PreguntasSugeridas();
                         sugerencias.Question = pregunta;
                         sugerencias.Answer = results[i].Answer;
                         preguntasSugeridas.Add(sugerencias);
+
                     }
                     //Se envia la respuesta al usuario, 
                     await turnContext.SendActivityAsync(MessageFactory.Text(respuesta), cancellationToken);
@@ -163,25 +166,32 @@ namespace ChatBot.Unaj.Bots
         }
 
 
-        private static Activity CreateHeroCard(List<PreguntasSugeridas> preguntas)
+        private  static Activity CreateHeroCard(List<PreguntasSugeridas> preguntas)
         {
             var image = new CardImage();
             var heroCard = new HeroCard();
             heroCard.Title = "";
             heroCard.Text = "Algunas sugerencias para tí";
-            
-            List<CardAction> buttons = new List<CardAction>();
-            foreach (var p in preguntas)
+            heroCard.Buttons = new List<CardAction>();
+            foreach (var item in preguntas)
             {
-                CardAction button = new CardAction();
-                button.Title = p.Question;
-                button.Value = p.Question;
-                button.Type = ActionTypes.ImBack;
-                buttons.Add(button);
-            }
-            heroCard.Buttons = buttons;
+                if (heroCard.Buttons.Count < 3)
+                {
+                    CardAction button = new CardAction();
+                    button.Title = item.Question;
+                    button.Value = item.Question;
+                    button.Type = ActionTypes.ImBack;
+                    heroCard.Buttons.Add(button);
+                }
+                else
+                {
+                    break;
+                }
 
-            return MessageFactory.Attachment(heroCard.ToAttachment()) as Activity;
+            }
+
+
+                return MessageFactory.Attachment(heroCard.ToAttachment()) as Activity;
 
         } // propio de botFramework
 
